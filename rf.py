@@ -130,8 +130,6 @@ def plot_confusion_matrix(y_true, y_pred, output_path=None):
     plt.xlabel('Predicted', fontsize=14)  
     plt.ylabel('True', fontsize=14)      
     plt.title('Confusion Matrix', fontsize=16)  
-    
-    # 设置坐标轴刻度标签的字体大小
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
     
@@ -294,6 +292,16 @@ def rf_evaluation(X, y, data, output_dir="./output", min_bitscore=50,
     print("=== Random forest step ===")
     
     os.makedirs(output_dir, exist_ok=True)
+
+    print("Protein partition:")
+    splits = kahip_split(X, y, data, output_dir=output_dir, min_bitscore=min_bitscore)
+    
+    if target_experiment:
+        experiments_to_run = [target_experiment]
+        print(f"evaluatesingle exp: {target_experiment}")
+    else:
+        experiments_to_run = ['exp1', 'exp2', 'exp3', 'exp4']
+        print("evaluate all exp")
     
     # Step 1: Grid search
     best_params = None
