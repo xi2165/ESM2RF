@@ -4,7 +4,7 @@ This is a brief introduction.
 ## Installation
 ```
 conda env create --file environment.yml
-conda activate tuna
+conda activate esm2
 ```
 ## Usage
 ### Data split
