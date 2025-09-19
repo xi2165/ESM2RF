@@ -1,5 +1,6 @@
 # ESM2RF
 Our program aims to develop a LoRA-adapted ESM-2 pre-trained model combined with a random forest classifier to predict protein-protein interactions (PPIs) within the MADS-box protein family.
+![Figure 1](workflow.png)
 This is a brief introduction.
 ## Installation
 ```
@@ -10,7 +11,7 @@ conda activate esm2
 ### Data split
 Firstly Run to have a fixed experiment group
 ```
-python spit.py
+python split.py
 ```
 ### Training and evaluation
 Example
