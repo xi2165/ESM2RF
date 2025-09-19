@@ -15,7 +15,6 @@ import glob
 from datetime import datetime
 
 from split import kahip_split
-from data import apply_smote
 from calibration import CalibrationEvaluator, calculate_uncertainty
 from config import ProjectConfig, NumpyEncoder
 
@@ -130,6 +129,8 @@ def plot_confusion_matrix(y_true, y_pred, output_path=None):
     plt.xlabel('Predicted', fontsize=14)  
     plt.ylabel('True', fontsize=14)      
     plt.title('Confusion Matrix', fontsize=16)  
+    
+    # 设置坐标轴刻度标签的字体大小
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
     
@@ -187,7 +188,7 @@ def plot_combined_roc_curves(partition_results, output_path=None):
                 
                 # Plot ROC curve
                 plt.plot(fpr, tpr, color=colors[exp_name], lw=2.5, alpha=0.8,
-                        label=f'{exp_names[exp_name]} (AUC = {roc_auc:.3f})')
+                        label=f'{exp_name}: {exp_names[exp_name]} (AUC = {roc_auc:.3f})')
             else:
                 print(f"Warning: {exp_name} has no probability predictions, skipping ROC curve")
     
@@ -200,9 +201,6 @@ def plot_combined_roc_curves(partition_results, output_path=None):
     plt.legend(loc="lower right", fontsize=10)
     plt.grid(True, alpha=0.3)
     
-    # Add performance annotation
-    plt.text(0.6, 0.2, 'Better Performance\n↖ (Upper Left)', 
-             fontsize=10, alpha=0.7, style='italic')
     
     plt.tight_layout()
     
@@ -292,7 +290,9 @@ def rf_evaluation(X, y, data, output_dir="./output", min_bitscore=50,
     print("=== Random forest step ===")
     
     os.makedirs(output_dir, exist_ok=True)
+    
 
+    
     print("Protein partition:")
     splits = kahip_split(X, y, data, output_dir=output_dir, min_bitscore=min_bitscore)
     
@@ -310,7 +310,6 @@ def rf_evaluation(X, y, data, output_dir="./output", min_bitscore=50,
         exp1_train_idx, exp1_test_idx = splits['exp1']
         X_exp1_train, y_exp1_train = X[exp1_train_idx], y[exp1_train_idx]
         
-        X_exp1_train_balanced, y_exp1_train_balanced = apply_smote(X_exp1_train, y_exp1_train, random_state=random_state)
         
         param_grid = {
             'n_estimators': [100, 200, 300],
@@ -332,7 +331,7 @@ def rf_evaluation(X, y, data, output_dir="./output", min_bitscore=50,
             verbose=1
         )
         
-        grid_search.fit(X_exp1_train_balanced, y_exp1_train_balanced)
+        grid_search.fit(X_exp1_train, y_exp1_train)
         best_params = grid_search.best_params_
         print(f"best params: {best_params}")
     else:
@@ -356,8 +355,6 @@ def rf_evaluation(X, y, data, output_dir="./output", min_bitscore=50,
         X_train, X_test = X[train_idx], X[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]
         
-        X_train_balanced, y_train_balanced = apply_smote(X_train, y_train, random_state=random_state)
-        
         print("perform 3-fold CV...")
         cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=random_state)
         
@@ -367,11 +364,11 @@ def rf_evaluation(X, y, data, output_dir="./output", min_bitscore=50,
         cv_true_labels = []
         
         fold = 1
-        for train_cv_idx, val_cv_idx in cv.split(X_train_balanced, y_train_balanced):
+        for train_cv_idx, val_cv_idx in cv.split(X_train, y_train):
             print(f"  Fold {fold}/3")
             
-            X_train_cv, X_val_cv = X_train_balanced[train_cv_idx], X_train_balanced[val_cv_idx]
-            y_train_cv, y_val_cv = y_train_balanced[train_cv_idx], y_train_balanced[val_cv_idx]
+            X_train_cv, X_val_cv = X_train[train_cv_idx], X_train[val_cv_idx]
+            y_train_cv, y_val_cv = y_train[train_cv_idx], y_train[val_cv_idx]
             
             rf_model = RandomForestClassifier(**best_params, random_state=random_state)
             rf_model.fit(X_train_cv, y_train_cv)
@@ -395,7 +392,7 @@ def rf_evaluation(X, y, data, output_dir="./output", min_bitscore=50,
         
         print("final model training...")
         final_rf_model = RandomForestClassifier(**best_params, random_state=random_state)
-        final_rf_model.fit(X_train_balanced, y_train_balanced)
+        final_rf_model.fit(X_train, y_train)
         
         y_pred = final_rf_model.predict(X_test)
         y_proba = final_rf_model.predict_proba(X_test)[:, 1]
